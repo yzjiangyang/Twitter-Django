@@ -3,9 +3,17 @@ from rest_framework import serializers, exceptions
 
 
 class UserSerializer(serializers.ModelSerializer):
+
     class Meta:
         model = User
         fields = ('username', 'email')
+
+
+class UserSerializerForTweet(serializers.ModelSerializer):
+
+    class Meta:
+        mode = User
+        fields = ('id', 'username')
 
 
 class LoginSerializer(serializers.Serializer):

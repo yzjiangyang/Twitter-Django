@@ -12,8 +12,12 @@ class UserSerializer(serializers.ModelSerializer):
 class UserSerializerForTweet(serializers.ModelSerializer):
 
     class Meta:
-        mode = User
+        model = User
         fields = ('id', 'username')
+
+
+class UserSerializerForFriendship(UserSerializerForTweet):
+    pass
 
 
 class LoginSerializer(serializers.Serializer):

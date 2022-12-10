@@ -44,7 +44,7 @@ class TweetApiTests(TestCase):
         self.assertEqual(response.data['tweets'][0]['id'], self.tweets2[-1].id)
         self.assertEqual(response.data['tweets'][-1]['id'], self.tweets2[0].id)
 
-    def create(self):
+    def test_create(self):
         # anonymous user cannot post a tweet
         response = self.anonymous_client.post(
             TWEET_CREATE_URL,

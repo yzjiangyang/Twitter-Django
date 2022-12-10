@@ -1,11 +1,20 @@
 from django.contrib.auth.models import User
 from django.test import TestCase as DjangoTestCase
 from friendships.models import Friendship
+from rest_framework.test import APIClient
 from tweets.models import Tweet
 
 
 class TestCase(DjangoTestCase):
+    
+    @property
+    def anonymous_client(self):
+        if hasattr(self, '_anonymous_user'):
+            return self._anonymous_user
 
+        self._anonymous_user = APIClient()
+        return self._anonymous_user
+        
     def create_user(self, username, email=None, password=None):
         if email is None:
             email = '{}@gmail.com'.format(username)

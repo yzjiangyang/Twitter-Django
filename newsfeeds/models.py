@@ -3,7 +3,7 @@ from django.db import models
 from tweets.models import Tweet
 
 
-class Newsfeed(models.Model):
+class NewsFeed(models.Model):
     # who can see this tweet
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
     tweet = models.ForeignKey(Tweet, on_delete=models.SET_NULL, null=True)

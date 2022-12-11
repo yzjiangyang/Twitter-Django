@@ -13,6 +13,7 @@ from utils.permissions import IsObjectOwner
 class CommentViewSet(viewsets.GenericViewSet):
     queryset = Comment.objects.all()
     serializer_class = CommentSerializerForUpdate
+    filterset_fields = ('tweet_id',)
 
     def get_permissions(self):
         if self.action == 'create':
@@ -20,6 +21,19 @@ class CommentViewSet(viewsets.GenericViewSet):
         if self.action in ('update', 'destroy'):
             return [IsAuthenticated(), IsObjectOwner()]
         return [AllowAny()]
+
+    def list(self, request):
+        if 'tweet_id' not in self.request.query_params:
+            return Response({
+                'success': False,
+                'errors': 'Please check your input'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        queryset = self.get_queryset()
+        comments = self.filter_queryset(queryset).\
+            prefetch_related('user').\
+            order_by('-created_at')
+        serializer = CommentSerializer(comments, many=True)
+        return Response({'comments': serializer.data})
 
     def create(self, request):
         serializer = CommentSerializerForCreate(

@@ -4,6 +4,7 @@ from tweets.models import Tweet
 
 TWEET_LIST_URL = '/api/tweets/'
 TWEET_CREATE_URL = '/api/tweets/'
+TWEET_RETRIEVE_URL = '/api/tweets/{}/'
 
 
 class TweetApiTests(TestCase):
@@ -79,4 +80,32 @@ class TweetApiTests(TestCase):
         self.assertEqual(
             response.data['tweets']['user']['username'],
             self.user1.username
+        )
+
+    def test_retrieve(self):
+        # invalid tweet id
+        url = TWEET_RETRIEVE_URL.format(0)
+        response = self.anonymous_client.get(url)
+        self.assertEqual(response.status_code, 404)
+
+        # no comments
+        tweet = self.create_tweet(self.user1)
+        url = TWEET_RETRIEVE_URL.format(tweet.id)
+        response = self.anonymous_client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data['comments']), 0)
+
+        # add comments
+        self.create_comment(self.user1, tweet)
+        self.create_comment(self.user2, tweet)
+        response = self.anonymous_client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data['comments']), 2)
+        self.assertEqual(
+            response.data['comments'][0]['user']['id'],
+            self.user1.id
+        )
+        self.assertEqual(
+            response.data['comments'][1]['user']['id'],
+            self.user2.id
         )

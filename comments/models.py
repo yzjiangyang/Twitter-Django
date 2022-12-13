@@ -16,7 +16,7 @@ class Comment(models.Model):
         index_together = (('tweet', 'created_at'),)
 
     @property
-    def likes_set(self):
+    def like_set(self):
         return Like.objects.filter(
             object_id=self.id,
             content_type=ContentType.objects.get_for_model(Comment)

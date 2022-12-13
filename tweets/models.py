@@ -18,7 +18,7 @@ class Tweet(models.Model):
         return (utc_now() - self.created_at).seconds // 3600
 
     @property
-    def likes_set(self):
+    def like_set(self):
         return Like.objects.filter(
             object_id=self.id,
             content_type=ContentType.objects.get_for_model(Tweet)

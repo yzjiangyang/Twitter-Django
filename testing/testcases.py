@@ -2,6 +2,7 @@ from comments.models import Comment
 from django.contrib.auth.models import User
 from django.test import TestCase as DjangoTestCase
 from friendships.models import Friendship
+from newsfeeds.models import NewsFeed
 from rest_framework.test import APIClient
 from tweets.models import Tweet
 
@@ -37,3 +38,6 @@ class TestCase(DjangoTestCase):
         if content is None:
             content = 'any comment'
         return Comment.objects.create(user=user, tweet=tweet, content=content)
+
+    def create_newsfeed(self, user, tweet):
+        return NewsFeed.objects.create(user=user, tweet=tweet)

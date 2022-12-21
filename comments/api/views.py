@@ -4,6 +4,7 @@ from comments.api.serializers import (
     CommentSerializerForUpdate
 )
 from comments.models import Comment
+from inbox.services import NotificationService
 from rest_framework import viewsets, status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -12,7 +13,7 @@ from utils.permissions import IsObjectOwner
 
 class CommentViewSet(viewsets.GenericViewSet):
     queryset = Comment.objects.all()
-    serializer_class = CommentSerializerForUpdate
+    serializer_class = CommentSerializerForCreate
     filterset_fields = ('tweet_id',)
 
     def get_permissions(self):
@@ -52,6 +53,7 @@ class CommentViewSet(viewsets.GenericViewSet):
                 'errors': serializer.errors
             }, status=status.HTTP_400_BAD_REQUEST)
         comment = serializer.save()
+        NotificationService.send_comment_notification(comment)
 
         return Response(
             CommentSerializer(comment, context={'request': request}).data,

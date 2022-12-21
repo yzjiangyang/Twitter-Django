@@ -45,13 +45,13 @@ class LikeSerializerForCreate(BaseLikeSerializerForCreateAndCancel):
 
     def create(self, validated_data):
         model_class = self._get_model_class(validated_data)
-        like, _ = Like.objects.get_or_create(
+        like, created = Like.objects.get_or_create(
             object_id=validated_data['object_id'],
             content_type=ContentType.objects.get_for_model(model_class),
             user=self.context['request'].user
         )
 
-        return like
+        return like, created
 
 
 class LikeSerializerForCancel(BaseLikeSerializerForCreateAndCancel):

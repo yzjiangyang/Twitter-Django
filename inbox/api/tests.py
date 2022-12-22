@@ -7,6 +7,7 @@ LIKE_URL = '/api/likes/'
 UNREAD_URL = '/api/notifications/unread-count/'
 MARK_ALL_AS_READ_URL = '/api/notifications/mark-all-as-read/'
 NOTIFICATION_URL = '/api/notifications/'
+NOTIFICATION_UPDATE_URL = '/api/notifications/{}/'
 
 
 class NotificationTestCase(TestCase):
@@ -188,3 +189,44 @@ class NotificationApiTests(TestCase):
 
         response = self.user1_client.get(NOTIFICATION_URL, {'unread': True})
         self.assertEqual(response.data['count'], 1)
+
+    def test_update(self):
+        # anonymous not allowed
+        response = self.anonymous_client.get(NOTIFICATION_UPDATE_URL)
+        self.assertEqual(response.status_code, 403)
+
+        tweet = self.create_tweet(self.user1)
+        self.user2_client.post(COMMENT_URL, {
+            'tweet_id': tweet.id,
+            'content': 'any content'
+        })
+        self.user2_client.post(LIKE_URL, {
+            'object_id': tweet.id,
+            'content_type': 'tweet'
+        })
+        
+        # get first notification
+        notification = Notification.objects.filter(recipient=self.user1).first()
+        url = NOTIFICATION_UPDATE_URL.format(notification.id)
+        
+        # user2 cannot update
+        response = self.user2_client.put(url, {'unread': False})
+        self.assertEqual(response.status_code, 404)
+
+        # user1 update to unread = False
+        response = self.user1_client.put(url, {'unread': False})
+        self.assertEqual(response.status_code, 200)
+        response = self.user1_client.get(UNREAD_URL)
+        self.assertEqual(response.data['unread_count'], 1)
+
+        # user1 update to unread = True
+        response = self.user1_client.put(url, {'unread': True})
+        self.assertEqual(response.status_code, 200)
+        response = self.user1_client.get(UNREAD_URL)
+        self.assertEqual(response.data['unread_count'], 2)
+
+        # cannot update other info
+        response = self.user1_client.put(url, {'unread': False, 'verb': 'new'})
+        self.assertEqual(response.status_code, 200)
+        notification.refresh_from_db()
+        self.assertNotEqual(notification.verb, 'new')

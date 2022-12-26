@@ -1,3 +1,4 @@
+from accounts.models import UserProfile
 from rest_framework.test import APIClient
 from testing.testcases import TestCase
 
@@ -131,6 +132,11 @@ class AccountApiTest(TestCase):
         })
         self.assertEqual(response.status_code, 201)
         self.assertEqual(response.data['success'], True)
+
+        created_user_id = response.data['user']['id']
+        profile = UserProfile.objects.get(user_id=created_user_id)
+        self.assertEqual(isinstance(profile, UserProfile), True)
+        self.assertEqual(UserProfile.objects.count(), 1)
 
         # login status
         response = self.user_client.get(LOGIN_STATUS_URL)

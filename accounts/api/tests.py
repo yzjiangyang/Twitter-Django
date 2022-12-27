@@ -1,4 +1,5 @@
 from accounts.models import UserProfile
+from django.core.files.uploadedfile import SimpleUploadedFile
 from rest_framework.test import APIClient
 from testing.testcases import TestCase
 
@@ -6,6 +7,7 @@ LOGIN_URL = '/api/accounts/login/'
 SIGNUP_URL = '/api/accounts/signup/'
 LOGOUT_URL = '/api/accounts/logout/'
 LOGIN_STATUS_URL = '/api/accounts/login_status/'
+USER_PROFILE_DETAIL_URL = '/api/profiles/{}/'
 
 
 class AccountApiTest(TestCase):
@@ -142,3 +144,51 @@ class AccountApiTest(TestCase):
         response = self.user_client.get(LOGIN_STATUS_URL)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['has_logged_in'], True)
+
+
+class UserProfileAPITests(TestCase):
+
+    def setUp(self):
+        self.user1 = self.create_user('test_user1')
+        self.user1_client = APIClient()
+        self.user1_client.force_authenticate(self.user1)
+
+        self.user2 = self.create_user('test_user2')
+        self.user2_client = APIClient()
+        self.user2_client.force_authenticate(self.user2)
+
+    def test_update(self):
+        user1_profile = self.user1.profile
+        user1_profile.nickname = 'old nickname'
+        user1_profile.save()
+        url = USER_PROFILE_DETAIL_URL.format(user1_profile.id)
+
+        # user 2 cannot update
+        response = self.user2_client.put(url, {
+            'nickname': 'new nickname'
+        })
+        self.assertEqual(response.status_code, 403)
+        user1_profile.refresh_from_db()
+        self.assertEqual(user1_profile.nickname, 'old nickname')
+
+        # user 1 can update
+        response = self.user1_client.put(url, {
+            'nickname': 'new nickname'
+        })
+        self.assertEqual(response.status_code, 200)
+        user1_profile.refresh_from_db()
+        self.assertEqual(user1_profile.nickname, 'new nickname')
+
+        # update avatar
+        response = self.user1_client.put(url, {
+            'avatar': SimpleUploadedFile(
+                name='my-avatar.jpeg',
+                content=str.encode('fake image'),
+                content_type='image/jpeg'
+            )
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual('my-avatar' in response.data['avatar'], True)
+        user1_profile.refresh_from_db()
+        self.assertIsNotNone(user1_profile.avatar)
+        

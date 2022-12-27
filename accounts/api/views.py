@@ -2,7 +2,9 @@ from accounts.api.serializers import (
     LoginSerializer,
     SignupSerializer,
     UserSerializer,
+    UserProfileSerializerForUpdate
 )
+from accounts.models import UserProfile
 from django.contrib.auth import (
     authenticate as django_authenticate,
     login as django_login,
@@ -13,6 +15,7 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from utils.permissions import IsObjectOwner
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -82,3 +85,13 @@ class AccountViewSet(viewsets.GenericViewSet):
             'success': True,
             'user': SignupSerializer(user).data
         }, status=status.HTTP_201_CREATED)
+
+
+class UserProfileViewSet(
+    viewsets.GenericViewSet,
+    viewsets.mixins.ListModelMixin,
+    viewsets.mixins.UpdateModelMixin
+):
+    queryset = UserProfile.objects.all()
+    serializer_class = UserProfileSerializerForUpdate
+    permission_classes = (IsAuthenticated, IsObjectOwner)

@@ -1,6 +1,7 @@
 from newsfeeds.models import NewsFeed
 from rest_framework.test import APIClient
 from testing.testcases import TestCase
+from utils.endless_paginations import EndlessPagination
 
 NEWSFEEDS_URL = '/api/newsfeeds/'
 POST_TWEETS_URL = '/api/tweets/'
@@ -30,13 +31,13 @@ class NewsFeedApiTests(TestCase):
         self.user1_client.post(POST_TWEETS_URL, {'content': 'hello.'})
         response = self.user1_client.get(NEWSFEEDS_URL)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.data['newsfeeds']), 1)
+        self.assertEqual(len(response.data['results']), 1)
         self.assertEqual(
-            response.data['newsfeeds'][0]['tweet']['content'],
+            response.data['results'][0]['tweet']['content'],
             'hello.'
         )
         self.assertEqual(
-            response.data['newsfeeds'][0]['tweet']['user']['username'],
+            response.data['results'][0]['tweet']['user']['username'],
             self.user1.username
         )
         self.assertEqual(NewsFeed.objects.count(), 1)
@@ -46,9 +47,55 @@ class NewsFeedApiTests(TestCase):
         self.user2_client.post(POST_TWEETS_URL, {'content': 'content'})
         response = self.user1_client.get(NEWSFEEDS_URL)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.data['newsfeeds']), 2)
+        self.assertEqual(len(response.data['results']), 2)
         self.assertEqual(
-            response.data['newsfeeds'][0]['tweet']['content'],
+            response.data['results'][0]['tweet']['content'],
             'content'
         )
         self.assertEqual(NewsFeed.objects.count(), 3)
+
+    def test_endless_pagination(self):
+        page_size = EndlessPagination.page_size
+        newsfeeds = []
+        for _ in range(page_size * 2):
+            tweet = self.create_tweet(self.user2)
+            newsfeed = self.create_newsfeed(self.user1, tweet)
+            newsfeeds.append(newsfeed)
+        newsfeeds = newsfeeds[::-1]
+
+        # page 1
+        response = self.user1_client.get(NEWSFEEDS_URL)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['has_next_page'], True)
+        self.assertEqual(len(response.data['results']), page_size)
+        self.assertEqual(response.data['results'][0]['id'], newsfeeds[0].id)
+        self.assertEqual(response.data['results'][page_size - 1]['id'], newsfeeds[page_size - 1].id)
+
+        # page 2
+        response = self.user1_client.get(NEWSFEEDS_URL, {
+            'created_at__lt': newsfeeds[page_size - 1].created_at
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['has_next_page'], False)
+        self.assertEqual(len(response.data['results']), page_size)
+        self.assertEqual(response.data['results'][0]['id'], newsfeeds[page_size].id)
+        self.assertEqual(response.data['results'][page_size - 1]['id'], newsfeeds[-1].id)
+
+        # pull the latest newsfeeds
+        response = self.user1_client.get(NEWSFEEDS_URL, {
+            'created_at__gt': newsfeeds[0].created_at
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['has_next_page'], False)
+        self.assertEqual(len(response.data['results']), 0)
+        
+        # create a new newsfeed
+        new_tweet = self.create_tweet(self.user2)
+        newsfeed = self.create_newsfeed(self.user1, new_tweet)
+        response = self.user1_client.get(NEWSFEEDS_URL, {
+            'created_at__gt': newsfeeds[0].created_at
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['has_next_page'], False)
+        self.assertEqual(len(response.data['results']), 1)
+        self.assertEqual(response.data['results'][0]['id'], newsfeed.id)

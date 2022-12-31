@@ -8,11 +8,13 @@ from tweets.api.serializers import (
     TweetSerializerForDetail
 )
 from tweets.models import Tweet
+from utils.endless_paginations import EndlessPagination
 
 
 class TweetViewSet(viewsets.GenericViewSet):
     queryset = Tweet.objects.all()
     serializer_class = TweetSerializerForCreate
+    pagination_class = EndlessPagination
 
     def get_permissions(self):
         if self.action in ('list', 'retrieve'):
@@ -28,13 +30,14 @@ class TweetViewSet(viewsets.GenericViewSet):
 
         user_id = request.query_params['user_id']
         tweets = Tweet.objects.filter(user_id=user_id).order_by('-created_at')
+        page = self.paginate_queryset(tweets)
         serializer = TweetSerializer(
-            tweets,
+            page,
             context={'request': request},
             many=True
         )
 
-        return Response({'tweets': serializer.data})
+        return self.get_paginated_response(serializer.data)
 
     def retrieve(self, request, *args, **kwargs):
         tweet = self.get_object()

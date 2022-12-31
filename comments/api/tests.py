@@ -132,7 +132,7 @@ class CommentApiTest(TestCase):
             'user_id': self.user1.id
         })
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data['tweets'][0]['comments_count'], 1)
+        self.assertEqual(response.data['results'][0]['comments_count'], 1)
 
         # test tweet detail
         url = TWEET_DETAIL_URL.format(self.tweet.id)

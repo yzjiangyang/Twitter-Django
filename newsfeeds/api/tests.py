@@ -143,3 +143,36 @@ class NewsFeedApiTests(TestCase):
             response.data['results'][1]['tweet']['user']['username'],
             'user2_new_username'
         )
+
+    def test_tweet_in_memcached(self):
+        tweet = self.create_tweet(self.user2)
+        self.create_newsfeed(self.user1, tweet)
+        response = self.user1_client.get(NEWSFEEDS_URL)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.data['results'][0]['tweet']['user']['username'],
+            'test_user2'
+        )
+        self.assertEqual(
+            response.data['results'][0]['tweet']['content'],
+            'any content'
+        )
+
+        # update username and content
+        self.user2.username = 'new username'
+        self.user2.save()
+        response = self.user1_client.get(NEWSFEEDS_URL)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.data['results'][0]['tweet']['user']['username'],
+            'new username'
+        )
+
+        tweet.content = 'new content'
+        tweet.save()
+        response = self.user1_client.get(NEWSFEEDS_URL)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.data['results'][0]['tweet']['content'],
+            'new content'
+        )

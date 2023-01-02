@@ -28,7 +28,7 @@ class UserSerializerForTweet(UserSerializerWithProfile):
 
     class Meta:
         model = User
-        fields = ('id', 'username')
+        fields = ('id', 'username', 'nickname', 'avatar_url')
 
 
 class UserSerializerForFriendship(UserSerializerWithProfile):

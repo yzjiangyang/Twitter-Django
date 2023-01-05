@@ -3,7 +3,7 @@ from rest_framework.test import APIClient
 from testing.testcases import TestCase
 from tweets.constants import TWEET_PHOTO_UPLOAD_LIMIT
 from tweets.models import Tweet, TweetPhoto
-from utils.endless_paginations import EndlessPagination
+from utils.paginations.endless_paginations import EndlessPagination
 
 TWEET_LIST_URL = '/api/tweets/'
 TWEET_CREATE_URL = '/api/tweets/'

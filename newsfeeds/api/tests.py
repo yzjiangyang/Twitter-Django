@@ -1,7 +1,7 @@
 from newsfeeds.models import NewsFeed
 from rest_framework.test import APIClient
 from testing.testcases import TestCase
-from utils.endless_paginations import EndlessPagination
+from utils.paginations.endless_paginations import EndlessPagination
 
 NEWSFEEDS_URL = '/api/newsfeeds/'
 POST_TWEETS_URL = '/api/tweets/'

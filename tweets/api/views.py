@@ -8,7 +8,7 @@ from tweets.api.serializers import (
     TweetSerializerForDetail
 )
 from tweets.models import Tweet
-from utils.endless_paginations import EndlessPagination
+from utils.paginations.endless_paginations import EndlessPagination
 
 
 class TweetViewSet(viewsets.GenericViewSet):

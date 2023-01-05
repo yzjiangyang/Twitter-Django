@@ -2,7 +2,7 @@ from django.contrib.auth.models import User
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.db import models
-from utils.memcached_helper import MemcachedHelper
+from utils.memcached.memcached_helper import MemcachedHelper
 
 
 class Like(models.Model):

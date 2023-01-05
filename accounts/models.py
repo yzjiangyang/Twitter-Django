@@ -2,7 +2,7 @@ from accounts.listeners import user_profile_change
 from django.contrib.auth.models import User
 from django.db import models
 from django.db.models.signals import post_save, pre_delete
-from utils.listeners import invalidate_object_cache
+from utils.memcached.listeners import invalidate_object_cache
 
 
 class UserProfile(models.Model):

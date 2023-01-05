@@ -2,7 +2,7 @@ from newsfeeds.api.serializers import NewsFeedSerializer
 from newsfeeds.models import NewsFeed
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
-from utils.endless_paginations import EndlessPagination
+from utils.paginations.endless_paginations import EndlessPagination
 
 
 class NewsFeedViewSet(viewsets.GenericViewSet):

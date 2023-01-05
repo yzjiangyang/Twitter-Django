@@ -1,7 +1,7 @@
 from django.contrib.auth.models import User
 from django.db import models
 from tweets.models import Tweet
-from utils.memcached_helper import MemcachedHelper
+from utils.memcached.memcached_helper import MemcachedHelper
 
 
 class NewsFeed(models.Model):

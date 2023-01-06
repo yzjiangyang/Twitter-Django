@@ -1,5 +1,6 @@
 from newsfeeds.api.serializers import NewsFeedSerializer
 from newsfeeds.models import NewsFeed
+from newsfeeds.services import NewsFeedService
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
 from utils.paginations.endless_paginations import EndlessPagination
@@ -11,7 +12,8 @@ class NewsFeedViewSet(viewsets.GenericViewSet):
     queryset = NewsFeed.objects.all()
 
     def list(self, request):
-        newsfeeds = NewsFeed.objects.filter(user=request.user).order_by('-created_at')
+        newsfeeds = NewsFeedService.get_cached_newsfeeds_from_redis(request.user.id)
+
         page = self.paginate_queryset(newsfeeds)
         serializer = NewsFeedSerializer(
             page,

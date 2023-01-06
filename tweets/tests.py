@@ -2,6 +2,8 @@ from datetime import timedelta
 from testing.testcases import TestCase
 from tweets.constants import TweetPhotoStatus
 from tweets.models import Tweet, TweetPhoto
+from tweets.services import TweetService
+from twitter.cache import USER_TWEETS_PATTERN
 from utils.redis.redis_client import RedisClient
 from utils.redis.redis_serializers import DjangoModelSerializer
 from utils.time_helpers import utc_now
@@ -50,14 +52,29 @@ class TweetTests(TestCase):
         data = conn.get(key)
         self.assertEqual(data, None)
 
-        # cache a list of tweets
-        tweet2 = self.create_tweet(test_user)
-        key = 'test_key'
-        conn.lpush(key, DjangoModelSerializer.serialize(tweet))
-        conn.lpush(key, DjangoModelSerializer.serialize(tweet2))
-        serialized_list = conn.lrange(key, 0, -1)
-        objects = []
-        for serialized_data in serialized_list:
-            deserialized_data = DjangoModelSerializer.deserialize(serialized_data)
-            objects.append(deserialized_data)
-        self.assertEqual(objects, [tweet2, tweet])
+    def test_cached_tweet_list_in_redis(self):
+        user = self.create_user('test_user')
+        tweet_ids = []
+        for _ in range(3):
+            tweet = self.create_tweet(user)
+            tweet_ids.append(tweet.id)
+        tweet_ids = tweet_ids[::-1]
+
+        key = USER_TWEETS_PATTERN.format(user_id=user.id)
+        conn = RedisClient.get_connection()
+        self.clear_cache()
+        # cache miss
+        self.assertEqual(conn.exists(key), False)
+        tweets = TweetService.get_cached_tweets_from_redis(user.id)
+        self.assertEqual(tweet_ids, [tweet.id for tweet in tweets])
+        # cache hit
+        self.assertEqual(conn.exists(key), True)
+        tweets = TweetService.get_cached_tweets_from_redis(user.id)
+        self.assertEqual(tweet_ids, [tweet.id for tweet in tweets])
+
+        # cache updated after a new tweet is created
+        new_tweet = self.create_tweet(user)
+        self.assertEqual(conn.exists(key), True)
+        tweets = TweetService.get_cached_tweets_from_redis(user.id)
+        tweet_ids.insert(0, new_tweet.id)
+        self.assertEqual(tweet_ids, [tweet.id for tweet in tweets])

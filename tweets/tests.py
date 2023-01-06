@@ -62,7 +62,7 @@ class TweetTests(TestCase):
 
         key = USER_TWEETS_PATTERN.format(user_id=user.id)
         conn = RedisClient.get_connection()
-        self.clear_cache()
+        RedisClient.clear()
         # cache miss
         self.assertEqual(conn.exists(key), False)
         tweets = TweetService.get_cached_tweets_from_redis(user.id)

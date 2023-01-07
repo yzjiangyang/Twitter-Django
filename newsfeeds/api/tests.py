@@ -1,4 +1,6 @@
+from django.conf import settings
 from newsfeeds.models import NewsFeed
+from newsfeeds.services import NewsFeedService
 from rest_framework.test import APIClient
 from testing.testcases import TestCase
 from utils.paginations.endless_paginations import EndlessPagination
@@ -176,3 +178,49 @@ class NewsFeedApiTests(TestCase):
             response.data['results'][0]['tweet']['content'],
             'new content'
         )
+
+    def _paginate_to_get_all_newsfeeds(self, client):
+        response = client.get(NEWSFEEDS_URL)
+        results = response.data['results']
+        while response.data['has_next_page']:
+            created_at__lt = response.data['results'][-1]['created_at']
+            response = client.get(NEWSFEEDS_URL, {'created_at__lt': created_at__lt})
+            results.extend(response.data['results'])
+
+        return results
+
+    def test_cached_limit_size_in_redis(self):
+        list_limit = settings.REDIS_LIST_LENGTH_LIMIT
+        page_size = EndlessPagination.page_size
+        newsfeeds = []
+        for _ in range(list_limit + page_size):
+            tweet = self.create_tweet(self.user1)
+            newsfeed = self.create_newsfeed(self.user2, tweet)
+            newsfeeds.append(newsfeed)
+        newsfeeds = newsfeeds[::-1]
+
+        # only cache list_limit size list
+        cached_newsfeeds = NewsFeedService.get_cached_newsfeeds_from_redis(self.user2.id)
+        self.assertEqual(len(cached_newsfeeds), list_limit)
+        queryset = NewsFeed.objects.filter(user_id=self.user2.id)
+        self.assertEqual(len(queryset), list_limit + page_size)
+
+        # test via api
+        results = self._paginate_to_get_all_newsfeeds(self.user2_client)
+        self.assertEqual(len(results), list_limit + page_size)
+        for i in range(list_limit + page_size):
+            self.assertEqual(newsfeeds[i].id, results[i]['id'])
+
+        # a new newsfeed is created
+        new_tweet = self.create_tweet(self.user1)
+        newsfeed = self.create_newsfeed(self.user2, new_tweet)
+        newsfeeds.insert(0, newsfeed)
+
+        def _test_newsfeeds_after_new_feed_pushed():
+            results = self._paginate_to_get_all_newsfeeds(self.user2_client)
+            self.assertEqual(len(results), list_limit + page_size + 1)
+            for i in range(list_limit + page_size + 1):
+                self.assertEqual(newsfeeds[i].id, results[i]['id'])
+        _test_newsfeeds_after_new_feed_pushed()
+        self.clear_cache()
+        _test_newsfeeds_after_new_feed_pushed()

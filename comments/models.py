@@ -4,6 +4,8 @@ from django.db import models
 from likes.models import Like
 from tweets.models import Tweet
 from utils.memcached.memcached_helper import MemcachedHelper
+from django.db.models.signals import post_save, pre_delete
+from comments.listeners import decr_comments_count, incr_comments_count
 
 
 class Comment(models.Model):
@@ -12,6 +14,8 @@ class Comment(models.Model):
     content = models.CharField(max_length=140)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    # de-normalization
+    likes_count = models.IntegerField(default=0, null=True)
 
     class Meta:
         index_together = (('tweet', 'created_at'),)
@@ -34,3 +38,7 @@ class Comment(models.Model):
     @property
     def cached_user(self):
         return MemcachedHelper.get_object_through_cache(User, self.user_id)
+
+
+post_save.connect(incr_comments_count, sender=Comment)
+pre_delete.connect(decr_comments_count, sender=Comment)

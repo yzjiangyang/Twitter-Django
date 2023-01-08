@@ -2,11 +2,13 @@ from accounts.api.serializers import UserSerializerForTweet
 from comments.api.serializers import CommentSerializer
 from likes.api.serializers import LikeSerializer
 from likes.services import LikeService
+from random import randint
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
-from tweets.models import Tweet
 from tweets.constants import TWEET_PHOTO_UPLOAD_LIMIT
+from tweets.models import Tweet
 from tweets.services import TweetService
+from utils.redis.redis_helper import RedisHelper
 
 
 class TweetSerializer(serializers.ModelSerializer):
@@ -33,10 +35,27 @@ class TweetSerializer(serializers.ModelSerializer):
         return LikeService.has_liked(self.context['request'].user, obj)
 
     def get_likes_count(self, obj):
-        return obj.like_set.count()
+        # randomly check if likes count is consistent
+        if randint(0, 999) == 0:
+            obj.refresh_from_db()
+            actual_likes_count = obj.like_set.count()
+            if obj.likes_count != actual_likes_count:
+                obj.likes_count = actual_likes_count
+                obj.save()
+                return actual_likes_count
+
+        return RedisHelper.get_count(obj, 'likes_count')
 
     def get_comments_count(self, obj):
-        return obj.comment_set.count()
+        if randint(0, 999) == 0:
+            obj.refresh_from_db()
+            actual_comments_count = obj.comment_set.count()
+            if obj.comments_count != actual_comments_count:
+                obj.comments_count = actual_comments_count
+                obj.save()
+                return actual_comments_count
+
+        return RedisHelper.get_count(obj, 'comments_count')
 
     def get_photo_urls(self, obj):
         photo_urls = []

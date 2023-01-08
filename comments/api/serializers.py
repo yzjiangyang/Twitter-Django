@@ -1,9 +1,11 @@
 from accounts.api.serializers import UserSerializerForComment
 from comments.models import Comment
 from likes.services import LikeService
+from random import randint
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 from tweets.models import Tweet
+from utils.redis.redis_helper import RedisHelper
 
 
 class CommentSerializer(serializers.ModelSerializer):
@@ -28,7 +30,15 @@ class CommentSerializer(serializers.ModelSerializer):
         return LikeService.has_liked(self.context['request'].user, obj)
 
     def get_likes_count(self, obj):
-        return obj.like_set.count()
+        if randint(0, 999) == 0:
+            obj.refresh_from_db()
+            actual_likes_count = obj.like_set.count()
+            if obj.likes_count != actual_likes_count:
+                obj.likes_count = actual_likes_count
+                obj.save()
+                return actual_likes_count
+
+        return RedisHelper.get_count(obj, 'likes_count')
 
 
 class CommentSerializerForCreate(serializers.ModelSerializer):

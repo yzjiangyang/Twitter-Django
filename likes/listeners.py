@@ -1,4 +1,5 @@
 from django.db.models import F
+from utils.redis.redis_helper import RedisHelper
 
 
 def incr_likes_count(sender, instance, created, **kwargs):
@@ -16,6 +17,7 @@ def incr_likes_count(sender, instance, created, **kwargs):
         Tweet.objects.filter(id=instance.object_id).update(
             likes_count=F('likes_count') + 1
         )
+    RedisHelper.incr_count(instance.content_object, 'likes_count')
 
 
 def decr_likes_count(sender, instance, **kwargs):
@@ -30,3 +32,4 @@ def decr_likes_count(sender, instance, **kwargs):
         Tweet.objects.filter(id=instance.object_id).update(
             likes_count=F('likes_count') - 1
         )
+    RedisHelper.decr_count(instance.content_object, 'likes_count')

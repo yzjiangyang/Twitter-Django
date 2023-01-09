@@ -178,6 +178,11 @@ REDIS_DB = 0 if TESTING else 1
 REDIS_KEY_EXPIRE_TIME = 7 * 86400  # in seconds
 REDIS_LIST_LENGTH_LIMIT = 200 if not TESTING else 20
 
+# Celery Configuration Options
+CELERY_BROKER_URL = 'redis://127.0.0.1:6379/0' if TESTING else 'redis://127.0.0.1:6379/2'
+CELERY_TIMEZONE = "UTC"
+CELERY_TASK_ALWAYS_EAGER = TESTING  # if true, celery will run Synchronously!
+
 try:
     from .local_settings import *
 except:

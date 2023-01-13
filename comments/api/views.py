@@ -4,7 +4,9 @@ from comments.api.serializers import (
     CommentSerializerForUpdate
 )
 from comments.models import Comment
+from django.utils.decorators import method_decorator
 from inbox.services import NotificationService
+from ratelimit.decorators import ratelimit
 from rest_framework import viewsets, status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -23,6 +25,7 @@ class CommentViewSet(viewsets.GenericViewSet):
             return [IsAuthenticated(), IsObjectOwner()]
         return [AllowAny()]
 
+    @method_decorator(ratelimit(key='user_or_ip', rate='10/s', method='GET', block=True))
     def list(self, request):
         if 'tweet_id' not in self.request.query_params:
             return Response({
@@ -41,6 +44,7 @@ class CommentViewSet(viewsets.GenericViewSet):
 
         return Response({'comments': serializer.data})
 
+    @method_decorator(ratelimit(key='user', rate='10/s', method='POST', block=True))
     def create(self, request):
         serializer = CommentSerializerForCreate(
             data=request.data,
@@ -60,6 +64,7 @@ class CommentViewSet(viewsets.GenericViewSet):
             status=status.HTTP_201_CREATED
         )
 
+    @method_decorator(ratelimit(key='user', rate='10/s', method='PUT', block=True))
     def update(self, request, *args, **kwargs):
         comment = self.get_object()
         serializer = CommentSerializerForUpdate(instance=comment, data=request.data)
@@ -76,6 +81,7 @@ class CommentViewSet(viewsets.GenericViewSet):
             status=status.HTTP_200_OK
         )
 
+    @method_decorator(ratelimit(key='user', rate='5/s', method='DELETE', block=True))
     def destroy(self, request, *args, **kwargs):
         comment = self.get_object()
         deleted, _ = comment.delete()

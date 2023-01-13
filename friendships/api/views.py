@@ -1,10 +1,12 @@
 from django.contrib.auth.models import User
+from django.utils.decorators import method_decorator
 from friendships.api.serializers import (
     FollowingSerializer,
     FollowerSerializer,
     FollowingSerializerForCreate
 )
 from friendships.models import Friendship
+from ratelimit.decorators import ratelimit
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -18,6 +20,7 @@ class FriendshipViewSet(viewsets.GenericViewSet):
     pagination_class = FriendshipPagination
 
     @action(methods=['GET'], detail=True, permission_classes=[AllowAny])
+    @method_decorator(ratelimit(key='user_or_ip', rate='3/s', method='GET', block=True))
     def followings(self, request, pk):
         from_user = self.get_object()
         friendships = Friendship.objects.filter(from_user=from_user).order_by('-created_at')
@@ -31,6 +34,7 @@ class FriendshipViewSet(viewsets.GenericViewSet):
         return self.get_paginated_response(serializer.data)
 
     @action(methods=['GET'], detail=True, permission_classes=[AllowAny])
+    @method_decorator(ratelimit(key='user_or_ip', rate='3/s', method='GET', block=True))
     def followers(self, request, pk):
         to_user = self.get_object()
         friendships = Friendship.objects.filter(to_user=to_user).order_by('-created_at')
@@ -44,6 +48,7 @@ class FriendshipViewSet(viewsets.GenericViewSet):
         return self.get_paginated_response(serializer.data)
 
     @action(methods=['POST'], detail=True, permission_classes=[IsAuthenticated])
+    @method_decorator(ratelimit(key='user', rate='10/s', method='POST', block=True))
     def follow(self, request, pk):
         to_user = self.get_object()
         serializer = FollowingSerializerForCreate(data={
@@ -63,6 +68,7 @@ class FriendshipViewSet(viewsets.GenericViewSet):
         )
 
     @action(methods=['POST'], detail=True, permission_classes=[IsAuthenticated])
+    @method_decorator(ratelimit(key='user', rate='10/s', method='POST', block=True))
     def unfollow(self, request, pk):
         to_user = self.get_object()
         if request.user.id == to_user.id:

@@ -11,6 +11,8 @@ from django.contrib.auth import (
     logout as django_logout,
 )
 from django.contrib.auth.models import User
+from django.utils.decorators import method_decorator
+from ratelimit.decorators import ratelimit
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
@@ -28,6 +30,7 @@ class AccountViewSet(viewsets.GenericViewSet):
     serializer_class = SignupSerializer
 
     @action(methods=['GET'], detail=False)
+    @method_decorator(ratelimit(key='ip', rate='3/s', method='GET', block=True))
     def login_status(self, request):
         data = {'has_logged_in': request.user.is_authenticated}
         if request.user.is_authenticated:
@@ -36,11 +39,13 @@ class AccountViewSet(viewsets.GenericViewSet):
         return Response(data)
 
     @action(methods=['POST'], detail=False)
+    @method_decorator(ratelimit(key='ip', rate='3/s', method='POST', block=True))
     def logout(self, request):
         django_logout(request)
         return Response({'success': True})
 
     @action(methods=['POST'], detail=False)
+    @method_decorator(ratelimit(key='ip', rate='3/s', method='POST', block=True))
     def login(self, request):
         serializer = LoginSerializer(data=request.data)
         if not serializer.is_valid():
@@ -70,6 +75,7 @@ class AccountViewSet(viewsets.GenericViewSet):
         })
 
     @action(methods=['POST'], detail=False)
+    @method_decorator(ratelimit(key='ip', rate='3/s', method='POST', block=True))
     def signup(self, request):
         serializer = SignupSerializer(data=request.data)
         if not serializer.is_valid():
